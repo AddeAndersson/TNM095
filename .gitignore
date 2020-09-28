@@ -1,0 +1,7 @@
+#IGNORE
+*
+
+#ALLOW
+!*.py
+!*.ps1
+!.gitignore
