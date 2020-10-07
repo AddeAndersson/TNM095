@@ -15,35 +15,34 @@ import json
 from ReplayBuffer import ReplayBuffer
 from ActorNetwork import ActorNetwork
 from CriticNetwork import CriticNetwork
+import matplotlib.pyplot as plt
 from OU import OU
 import timeit
 
 OU = OU()       #Ornstein-Uhlenbeck Process
 
-def playGame(train_indicator=1):    #1 means Train, 0 means simply Run
+def playGame(train_indicator=0):    #1 means Train, 0 means simply Run
     BUFFER_SIZE = 100000
-    BATCH_SIZE = 64
+    BATCH_SIZE = 128
     GAMMA = 0.99
     TAU = 0.001     #Target Network HyperParameters
-    LRA = 0.0005    #Learning rate for Actor
-    LRC = 0.005     #Lerning rate for Critic
+    LRA = 0.0001   #0.0001 #Learning rate for Actor
+    LRC = 0.001   #0.001  #Lerning rate for Critic
 
-    action_dim = 2  #Steering/Acceleration/Brake OR Steering/Acceleration_and_brake
+    action_dim = 2  # 3 #Steering/Acceleration/Brake OR Steering/Acceleration_and_brake
     state_dim = 29  #of sensors input
 
     np.random.seed(1337)
 
-
     vision = False
 
     EXPLORE = 10000.
-    episode_count = 250
-    max_steps = 10000
+    episode_count = 1 #2000
+    max_steps = 5000 #5000
     reward = 0
     done = False
-    step = 0
     epsilon = 1
-    indicator = 0
+    #indicator = 0
 
     #Tensorflow GPU optimization
     config = tf.ConfigProto()
@@ -62,6 +61,11 @@ def playGame(train_indicator=1):    #1 means Train, 0 means simply Run
     # Generate a Torcs environment
     env = TorcsEnv(vision=vision, throttle=True, gear_change=False)
 
+    # For plotting results
+    x = np.zeros(episode_count)
+    y_step = np.zeros(episode_count)
+    y_reward = np.zeros(episode_count)
+
     #Now load the weight
     print("Now we load the weight")
     try:
@@ -75,7 +79,9 @@ def playGame(train_indicator=1):    #1 means Train, 0 means simply Run
 
     print("TORCS Experiment Start.")
     for i in range(episode_count):
-
+        
+        steps = 0
+        x[i] = i
         print("Episode : " + str(i) + " Replay Buffer " + str(buff.count()))
 
         if np.mod(i, 3) == 0:
@@ -87,11 +93,10 @@ def playGame(train_indicator=1):    #1 means Train, 0 means simply Run
      
         total_reward = 0.
         for j in range(max_steps):
-            loss = 0 
-            epsilon -= 1.0 / EXPLORE
+            loss = 0
+            #epsilon -= 1.0 / EXPLORE
             a_t = np.zeros([1,action_dim])
             noise_t = np.zeros([1,action_dim])
-            
             
             a_t_original = actor.model.predict(s_t.reshape(1, s_t.shape[0]))
             #print(a_t_original.shape)
@@ -153,26 +158,44 @@ def playGame(train_indicator=1):    #1 means Train, 0 means simply Run
             total_reward += r_t
             s_t = s_t1
         
-            print("Episode", i, "Step", step, "Action", a_t, "Reward", r_t, "Loss", loss)
+            #print("Episode", i, "Step", step, "Action", a_t, "Reward", r_t, "Loss", loss)
         
-            step += 1
+            steps += 1
             if done:
                 break
 
-        if np.mod(i, 3) == 0:
-            if (train_indicator):
-                print("Saving Model")
-                actor.model.save_weights("actormodel.h5", overwrite=True)
-                with open("actormodel.json", "w") as outfile:
-                    json.dump(actor.model.to_json(), outfile)
+        y_step[i] = steps
+        y_reward[i] = total_reward
+        #if np.mod(i, 3) == 0:
+        if (train_indicator):
+            print("Saving Model")
+            actor.model.save_weights("actormodel.h5", overwrite=True)
+            with open("actormodel.json", "w") as outfile:
+                json.dump(actor.model.to_json(), outfile)
 
-                critic.model.save_weights("criticmodel.h5", overwrite=True)
-                with open("criticmodel.json", "w") as outfile:
-                    json.dump(critic.model.to_json(), outfile)
+            critic.model.save_weights("criticmodel.h5", overwrite=True)
+            with open("criticmodel.json", "w") as outfile:
+                json.dump(critic.model.to_json(), outfile)
 
         print("TOTAL REWARD @ " + str(i) +"-th Episode  : Reward " + str(total_reward))
-        print("Total Step: " + str(step))
+        print("Total Steps: " + str(steps))
         print("")
+    
+    plt.figure(1)
+    plt.figure(num=1, figsize=(8,6))
+    plt.title('Plot 1', size=14)
+    plt.xlabel('ep', size=14)
+    plt.ylabel('steps', size=14)
+    plt.plot(x, y_step, color='b', linestyle='--', marker='o')
+    plt.savefig('plot1.png', format='png')
+    #######
+    plt.figure(2)
+    plt.figure(num=2, figsize=(8,6))
+    plt.title('Plot 2', size=14)
+    plt.xlabel('ep', size=14)
+    plt.ylabel('rewards', size=14)
+    plt.plot(x, y_reward, color='b', linestyle='--', marker='o')
+    plt.savefig('plot2.png', format='png')
 
     env.end()  # This is for shutting down TORCS
     print("Finish.")

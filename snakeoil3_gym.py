@@ -129,7 +129,7 @@ class Client(object):
         self.trackname= u'unknown'
         self.stage= 3 # 0=Warm-up, 1=Qualifying 2=Race, 3=unknown <Default=3>
         self.debug= False
-        self.maxSteps= 100000  # 50steps/second
+        self.maxSteps= 1  # 50steps/second #100000
         self.parse_the_command_line()
         if H: self.host= H
         if p: self.port= p

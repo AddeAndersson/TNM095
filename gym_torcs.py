@@ -3,7 +3,6 @@ from gym import spaces
 import numpy as np
 # from os import path
 import snakeoil3_gym as snakeoil3
-import numpy as np
 import copy
 import collections as col
 import os
@@ -11,7 +10,7 @@ import time
 
 
 class TorcsEnv:
-    terminal_judge_start = 100  # If after 100 timestep still no progress, terminated
+    terminal_judge_start = 200  # If after 100 timestep still no progress, terminated
     termination_limit_progress = 1  # [km/h], episode terminates if car is running slower than this limit
     default_speed = 50
 
@@ -39,9 +38,9 @@ class TorcsEnv:
         os.system('taskkill /IM "wtorcs.exe" /F')
         time.sleep(2)
         if self.vision is True:
-            os.system('start wtorcs.exe -nofuel -nolaptime -vision') #needs to be run from torcs base directory
+            os.system('start wtorcs.exe -t 10000000 -nofuel -nolaptime -vision') #needs to be run from torcs base directory
         else:
-            os.system('start wtorcs.exe -nofuel -nolaptime') #needs to be run from torcs base directory
+            os.system('start wtorcs.exe -t 10000000 -nofuel -nolaptime') #needs to be run from torcs base directory
         time.sleep(10)
         os.system('powershell -executionpolicy bypass -File autostart.ps1') #Windows
         time.sleep(5)
@@ -147,10 +146,10 @@ class TorcsEnv:
         damage = np.array(obs['damage'])
         rpm = np.array(obs['rpm'])
 
-        if np.abs(obs['trackPos']) < 0.99:
-            progress = sp * (np.cos(obs['angle']) - np.sin(obs['angle']) - np.abs(obs['trackPos']))
-        else:
-            progress = -500
+        #if np.abs(obs['trackPos']) < 0.99:
+        progress = sp * (np.cos(obs['angle']) - np.abs(np.sin(obs['angle'])) - np.abs(obs['trackPos']))
+        #else:
+         #   progress = -500
         
         reward = progress
 
@@ -161,22 +160,22 @@ class TorcsEnv:
         # Termination judgement #########################
         episode_terminate = False
         
-        if (abs(trackPos) > 1.1):  # Episode is terminated if the car is out of track
+        if (abs(trackPos) > 1.0):  # Episode is terminated if the car is out of track
             print("Out of track")
-            reward = -2000
+            reward = -200
             episode_terminate = True
             client.R.d['meta'] = True
-        
+        '''
         if self.terminal_judge_start < self.time_step: # Episode terminates if the progress of agent is small
             if progress < self.termination_limit_progress:
                 print("No progress")
-                reward = -2000
+                reward = -200
                 episode_terminate = True
                 client.R.d['meta'] = True
-
+        '''
         if np.cos(obs['angle']) < 0: # Episode is terminated if the agent runs backward
             print("Backward movement")
-            reward = -2000
+            reward = -200
             episode_terminate = True
             client.R.d['meta'] = True
 
@@ -244,9 +243,9 @@ class TorcsEnv:
         os.system('taskkill /IM "wtorcs.exe" /F')
         time.sleep(2)
         if self.vision is True:
-            os.system('start wtorcs.exe -nofuel -nolaptime -vision') #needs to be run from torcs base directory
+            os.system('start wtorcs.exe -t 10000000 -nofuel -nolaptime -vision') #needs to be run from torcs base directory
         else:
-            os.system('start wtorcs.exe -nofuel -nolaptime') #needs to be run from torcs base directory
+            os.system('start wtorcs.exe -t 10000000 -nofuel -nolaptime') #needs to be run from torcs base directory
         time.sleep(10)
         os.system('powershell -executionpolicy bypass -File autostart.ps1') #Windows
         time.sleep(5)
@@ -291,7 +290,7 @@ class TorcsEnv:
                      'track', 
                      'trackPos',
                      'wheelSpinVel']
-            Observation = col.namedtuple('Observaion', names)
+            Observation = col.namedtuple('Observation', names)
             return Observation(focus=np.array(raw_obs['focus'], dtype=np.float32)/200.,
                                speedX=np.array(raw_obs['speedX'], dtype=np.float32)/300.0,
                                speedY=np.array(raw_obs['speedY'], dtype=np.float32)/300.0,
@@ -312,7 +311,7 @@ class TorcsEnv:
                      'trackPos',
                      'wheelSpinVel',
                      'img']
-            Observation = col.namedtuple('Observaion', names)
+            Observation = col.namedtuple('Observation', names)
 
             # Get RGB from observation
             image_rgb = self.obs_vision_to_image_rgb(raw_obs[names[8]])
