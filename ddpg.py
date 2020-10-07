@@ -1,6 +1,7 @@
 from gym_torcs import TorcsEnv
 import numpy as np
 import random
+import os
 import argparse
 from keras.models import model_from_json, Model
 from keras.models import Sequential
@@ -15,13 +16,12 @@ import json
 from ReplayBuffer import ReplayBuffer
 from ActorNetwork import ActorNetwork
 from CriticNetwork import CriticNetwork
-import matplotlib.pyplot as plt
 from OU import OU
 import timeit
 
 OU = OU()       #Ornstein-Uhlenbeck Process
 
-def playGame(train_indicator=0):    #1 means Train, 0 means simply Run
+def playGame(train_indicator=1):    #1 means Train, 0 means simply Run
     BUFFER_SIZE = 100000
     BATCH_SIZE = 128
     GAMMA = 0.99
@@ -37,12 +37,11 @@ def playGame(train_indicator=0):    #1 means Train, 0 means simply Run
     vision = False
 
     EXPLORE = 10000.
-    episode_count = 1 #2000
+    episode_count = 2 #2000
     max_steps = 5000 #5000
     reward = 0
     done = False
     epsilon = 1
-    #indicator = 0
 
     #Tensorflow GPU optimization
     config = tf.ConfigProto()
@@ -62,9 +61,11 @@ def playGame(train_indicator=0):    #1 means Train, 0 means simply Run
     env = TorcsEnv(vision=vision, throttle=True, gear_change=False)
 
     # For plotting results
-    x = np.zeros(episode_count)
-    y_step = np.zeros(episode_count)
-    y_reward = np.zeros(episode_count)
+    #x = np.zeros(episode_count)
+    #y_step = np.zeros(episode_count)
+    #y_reward = np.zeros(episode_count)
+    if train_indicator:
+        y_reward = np.load('rewards.npy') if os.path.isfile("rewards.npy") else np.array([0])
 
     #Now load the weight
     print("Now we load the weight")
@@ -81,7 +82,6 @@ def playGame(train_indicator=0):    #1 means Train, 0 means simply Run
     for i in range(episode_count):
         
         steps = 0
-        x[i] = i
         print("Episode : " + str(i) + " Replay Buffer " + str(buff.count()))
 
         if np.mod(i, 3) == 0:
@@ -164,9 +164,9 @@ def playGame(train_indicator=0):    #1 means Train, 0 means simply Run
             if done:
                 break
 
-        y_step[i] = steps
-        y_reward[i] = total_reward
-        #if np.mod(i, 3) == 0:
+        if train_indicator:
+            y_reward = np.append(y_reward, total_reward)
+
         if (train_indicator):
             print("Saving Model")
             actor.model.save_weights("actormodel.h5", overwrite=True)
@@ -181,22 +181,11 @@ def playGame(train_indicator=0):    #1 means Train, 0 means simply Run
         print("Total Steps: " + str(steps))
         print("")
     
-    plt.figure(1)
-    plt.figure(num=1, figsize=(8,6))
-    plt.title('Plot 1', size=14)
-    plt.xlabel('ep', size=14)
-    plt.ylabel('steps', size=14)
-    plt.plot(x, y_step, color='b', linestyle='--', marker='o')
-    plt.savefig('plot1.png', format='png')
-    #######
-    plt.figure(2)
-    plt.figure(num=2, figsize=(8,6))
-    plt.title('Plot 2', size=14)
-    plt.xlabel('ep', size=14)
-    plt.ylabel('rewards', size=14)
-    plt.plot(x, y_reward, color='b', linestyle='--', marker='o')
-    plt.savefig('plot2.png', format='png')
-
+    if train_indicator:
+        with open('rewards.npy', 'wb') as f:
+            np.save(f, y_reward)
+    
+    
     env.end()  # This is for shutting down TORCS
     print("Finish.")
 

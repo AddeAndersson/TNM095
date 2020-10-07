@@ -38,9 +38,9 @@ class TorcsEnv:
         os.system('taskkill /IM "wtorcs.exe" /F')
         time.sleep(2)
         if self.vision is True:
-            os.system('start wtorcs.exe -t 10000000 -nofuel -nolaptime -vision') #needs to be run from torcs base directory
+            os.system('start wtorcs.exe -t 30000000 -nofuel -nolaptime -vision') #needs to be run from torcs base directory
         else:
-            os.system('start wtorcs.exe -t 10000000 -nofuel -nolaptime') #needs to be run from torcs base directory
+            os.system('start wtorcs.exe -t 30000000 -nofuel -nolaptime') #needs to be run from torcs base directory
         time.sleep(10)
         os.system('powershell -executionpolicy bypass -File autostart.ps1') #Windows
         time.sleep(5)
@@ -243,9 +243,9 @@ class TorcsEnv:
         os.system('taskkill /IM "wtorcs.exe" /F')
         time.sleep(2)
         if self.vision is True:
-            os.system('start wtorcs.exe -t 10000000 -nofuel -nolaptime -vision') #needs to be run from torcs base directory
+            os.system('start wtorcs.exe -t 30000000 -nofuel -nolaptime -vision') #needs to be run from torcs base directory
         else:
-            os.system('start wtorcs.exe -t 10000000 -nofuel -nolaptime') #needs to be run from torcs base directory
+            os.system('start wtorcs.exe -t 30000000 -nofuel -nolaptime') #needs to be run from torcs base directory
         time.sleep(10)
         os.system('powershell -executionpolicy bypass -File autostart.ps1') #Windows
         time.sleep(5)
